@@ -59,10 +59,10 @@ public class RDPHelper {
 			updateRDPFile(args[1], args[2]);
 		} else {
 			System.out.println("Usage:");
-			System.out.println("To generate rdp password: \n\tjava -jar rdpgenerator.jar password $PASSWORD");
-			System.out.println("To create .rdp file: \n\tjava -jar rdpgenerator.jar file $PASSWORD $USERNAME $HOST $FILENAME $DOMAIN");
-			System.out.println("To start rdp session: \n\tjava -jar rdpgenerator.jar open $PASSWORD $USERNAME $HOST $DOMAIN");
-			System.out.println("To add password line to the existing file: \n\tjava -jar rdpgenerator.jar update $PASSWORD $FILENAME");
+			System.out.println("To generate rdp password: \n\tjava -jar rdpgenerator.jar /password $PASSWORD");
+			System.out.println("To create .rdp file: \n\tjava -jar rdpgenerator.jar /file $PASSWORD $USERNAME $HOST $FILENAME $DOMAIN");
+			System.out.println("To start rdp session: \n\tjava -jar rdpgenerator.jar /open $PASSWORD $USERNAME $HOST $DOMAIN");
+			System.out.println("To add password line to the existing file: \n\tjava -jar rdpgenerator.jar /update $PASSWORD $FILENAME");
 			System.out.println("Leave $DOMAIN empty if absent");
 		}
 	}
