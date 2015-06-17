@@ -125,10 +125,15 @@ public class RDPHelper {
 	private static void openRDPSession(boolean skipWarning, String password, String userName, String hostname, String domain) {
 
 		// Creates registry value to avoid warning window.
-		if (skipWarning && (!Advapi32Util.registryValueExists(WinReg.HKEY_CURRENT_USER, "Software\\Microsoft\\Terminal Server Client\\LocalDevices", hostname))) {
-			Advapi32Util.registrySetIntValue(WinReg.HKEY_CURRENT_USER, "Software\\Microsoft\\Terminal Server Client\\LocalDevices", hostname, 76);
+		//TODO change 111 (or 76 as Win7 defaults) to the correct value - it should depends on Windows OS version		
+		if (skipWarning) {
+			if (!Advapi32Util.registryKeyExists(WinReg.HKEY_CURRENT_USER, "Software\\Microsoft\\Terminal Server Client\\LocalDevices")) {
+				Advapi32Util.registryCreateKey(WinReg.HKEY_CURRENT_USER, "Software\\Microsoft\\Terminal Server Client\\LocalDevices");
+			}
+			if (!Advapi32Util.registryValueExists(WinReg.HKEY_CURRENT_USER, "Software\\Microsoft\\Terminal Server Client\\LocalDevices", hostname)) {
+				Advapi32Util.registrySetIntValue(WinReg.HKEY_CURRENT_USER, "Software\\Microsoft\\Terminal Server Client\\LocalDevices", hostname, 111);
+			}
 		}
-		//TODO change 76 to the correct value - it should depends on Windows OS version
 
 		try {
 			String javaTempDir = System.getProperty("java.io.tmpdir");
