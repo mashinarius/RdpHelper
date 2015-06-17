@@ -11,6 +11,8 @@ This file could be used to automatically connect to the Windows OS. The file sho
 *	<code>java -jar rdpgenerator.jar /file $PASSWORD $USERNAME $HOST $FILENAME $DOMAIN</code>
 * To start rdp session: 
 *	<code>java -jar rdpgenerator.jar /open $PASSWORD $USERNAME $HOST $DOMAIN</code>
+* To start rdp session and skip warning windows (untrusted publisher)
+*	<code>java -jar rdpgenerator.jar /force $PASSWORD $USERNAME $HOST $DOMAIN</code>
 * To add password line to the existing file: 
 *	<code>java -jar rdpgenerator.jar /update $PASSWORD $FILENAME</code>
 * Leave $DOMAIN empty if absent

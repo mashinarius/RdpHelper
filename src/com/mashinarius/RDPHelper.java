@@ -10,26 +10,40 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Formatter;
 
+import com.sun.jna.platform.win32.Advapi32Util;
 import com.sun.jna.platform.win32.Crypt32;
 import com.sun.jna.platform.win32.WinCrypt;
 import com.sun.jna.platform.win32.WinCrypt.DATA_BLOB;
+import com.sun.jna.platform.win32.WinReg;
 
 /**
  * @author mashinarius
- *
- * Usage:<br>
- * <p>/password {password}
- * Generates encrypted RDP password and print the result to the output.<br> 
- * <i>Password must be generated at the RDP client side.<br>
- * e.g. if you want to connect from A to B, password must be generated at the A side only.</i>
- * <p>/file {password} {userName} {hostname} {fileName} {domain} <br>
- * Creates {filename}.rpd file with the basic information inside (hostname, username, password, domain, screen windowed, size 1280*1024)<br>
- * Adds password to the existing RDP file
- * <p>/open  {password} {userName} {hostname} {domain} <br>
- * Creates temporary .rdp file and open RDP connection (the username will be the prefix of the filename)
- * <p>/update  {password} {fileName} <br>
- * Updates the file {filename}, adds new line with the encrypted password (e.g. password 51:b:{passwordhash})<br>
- *  
+ * 
+ *         Usage:<br>
+ *         <p>
+ *         /password {password} Generates encrypted RDP password and print the
+ *         result to the output.<br>
+ *         <i>Password must be generated at the RDP client side.<br>
+ *         e.g. if you want to connect from A to B, password must be generated
+ *         at the A side only.</i>
+ *         <p>
+ *         /file {password} {userName} {hostname} {fileName} {domain} <br>
+ *         Creates {filename}.rpd file with the basic information inside
+ *         (hostname, username, password, domain, screen windowed, size
+ *         1280*1024)<br>
+ *         Adds password to the existing RDP file
+ *         <p>
+ *         /open {password} {userName} {hostname} {domain} <br>
+ *         Creates temporary .rdp file and open RDP connection (the username
+ *         will be the prefix of the filename)
+ *         <p>
+ *         /force {password} {userName} {hostname} {domain} <br>
+ *         Same as /open but skip warning window (untrusted publisher)
+ *         <p>
+ *         /update {password} {fileName} <br>
+ *         Updates the file {filename}, adds new line with the encrypted
+ *         password (e.g. password 51:b:{passwordhash})<br>
+ * 
  */
 public class RDPHelper {
 
@@ -38,33 +52,40 @@ public class RDPHelper {
 	 */
 	public static void main(String[] args) {
 
-		if (args.length > 0 && args[0].equals("/password") && args.length == 2) {
-			System.out.println(generatePassword(args[1]));
-		} else if (args.length > 0 && args[0].equals("/file") && (args.length == 6 || args.length == 5)) {
-			if (args.length == 5) {
-				// if no domain name was specified
-				createRpdFile(args[1], args[2], args[3], args[4], "");
-			} else {
-				createRpdFile(args[1], args[2], args[3], args[4], args[5]);
-			}
-		} else if (args.length > 0 && args[0].equals("/open") && (args.length == 5 || args.length == 4)) {
-			if (args.length == 4) {
-				// if no domain name was specified
-				openRDPSession(args[1], args[2], args[3], "");
-			} else {
-				openRDPSession(args[1], args[2], args[3], args[4]);
-			}
+		if (args.length < 2) {
+			usage();
+			System.exit(0);
+		}
 
-		} else if (args.length > 0 && args[0].equals("/update") && args.length == 3) {
+		if (args[0].equals("/password") && args.length == 2) {
+			System.out.println(generatePassword(args[1]));
+		} else if (args[0].equals("/file") && args.length == 5) {
+			createRpdFile(args[1], args[2], args[3], args[4], ""); // no domain name was specified
+		} else if (args[0].equals("/file") && args.length == 6) {
+			createRpdFile(args[1], args[2], args[3], args[4], args[5]);
+		} else if (args[0].equals("/open") && args.length == 4) {
+			openRDPSession(false, args[1], args[2], args[3], ""); // no domain name was specified
+		} else if (args[0].equals("/open") && args.length == 5) {
+			openRDPSession(false, args[1], args[2], args[3], args[4]);
+		} else if (args[0].equals("/force") && args.length == 4) {
+			openRDPSession(true, args[1], args[2], args[3], ""); // no domain name was specified
+		} else if (args[0].equals("/force") && args.length == 5) {
+			openRDPSession(true, args[1], args[2], args[3], args[4]);
+		} else if (args[0].equals("/update") && args.length == 3) {
 			updateRDPFile(args[1], args[2]);
 		} else {
-			System.out.println("Usage:");
-			System.out.println("To generate rdp password: \n\tjava -jar rdpgenerator.jar /password $PASSWORD");
-			System.out.println("To create .rdp file: \n\tjava -jar rdpgenerator.jar /file $PASSWORD $USERNAME $HOST $FILENAME $DOMAIN");
-			System.out.println("To start rdp session: \n\tjava -jar rdpgenerator.jar /open $PASSWORD $USERNAME $HOST $DOMAIN");
-			System.out.println("To add password line to the existing file: \n\tjava -jar rdpgenerator.jar /update $PASSWORD $FILENAME");
-			System.out.println("Leave $DOMAIN empty if absent");
+			usage();
 		}
+	}
+
+	private static void usage() {
+		System.out.println("Usage:");
+		System.out.println("To generate rdp password: \n\tjava -jar rdpgenerator.jar /password $PASSWORD");
+		System.out.println("To create .rdp file: \n\tjava -jar rdpgenerator.jar /file $PASSWORD $USERNAME $HOST $FILENAME $DOMAIN");
+		System.out.println("To start rdp session: \n\tjava -jar rdpgenerator.jar /open $PASSWORD $USERNAME $HOST $DOMAIN");
+		System.out.println("To add password line to the existing file: \n\tjava -jar rdpgenerator.jar /update $PASSWORD $FILENAME");
+		System.out.println("Leave $DOMAIN empty if absent");
+
 	}
 
 	/**
@@ -101,7 +122,14 @@ public class RDPHelper {
 	 * @param hostname
 	 * @param domain
 	 */
-	private static void openRDPSession(String password, String userName, String hostname, String domain) {
+	private static void openRDPSession(boolean skipWarning, String password, String userName, String hostname, String domain) {
+
+		// Creates registry value to avoid warning window.
+		if (skipWarning && (!Advapi32Util.registryValueExists(WinReg.HKEY_CURRENT_USER, "Software\\Microsoft\\Terminal Server Client\\LocalDevices", hostname))) {
+			Advapi32Util.registrySetIntValue(WinReg.HKEY_CURRENT_USER, "Software\\Microsoft\\Terminal Server Client\\LocalDevices", hostname, 76);
+		}
+		//TODO change 76 to the correct value - it should depends on Windows OS version
+
 		try {
 			String javaTempDir = System.getProperty("java.io.tmpdir");
 			File tempDir = new File(javaTempDir);
@@ -122,8 +150,9 @@ public class RDPHelper {
 
 	/**
 	 * This insane method creates RPD password 1329 byte length.<br>
-	 * Fills up the password with zeroes until it has 512 bytes length, encrypt, add zero to the end.
-	 * Algorithm from <i>Remko Weijnen</i>.
+	 * Fills up the password with zeroes until it has 512 bytes length, encrypt,
+	 * add zero to the end. Algorithm from <i>Remko Weijnen</i>.
+	 * 
 	 * @param initialPassword
 	 * @return String encrypted password 1329 length.
 	 */
@@ -145,8 +174,9 @@ public class RDPHelper {
 	}
 
 	/**
-	 * Usual method of encrypting RDP password. The encrypted result length depends on password length.
-	 * Not all Windows systems supports.
+	 * Usual method of encrypting RDP password. The encrypted result length
+	 * depends on password length. Not all Windows systems supports.
+	 * 
 	 * @param bytes
 	 * @return String encrypted password
 	 */
