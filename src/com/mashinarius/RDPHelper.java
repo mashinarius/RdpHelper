@@ -140,9 +140,9 @@ public class RDPHelper {
 			File tempDir = new File(javaTempDir);
 			File theFile = null;
 			if (tempDir.exists() && tempDir.isDirectory()) {
-				theFile = new File(tempDir + "\\" + userName + "TemporaryFile.rdp");
+				theFile = new File(tempDir + "\\" + userName + "_temporaryFile.rdp");
 			} else {
-				theFile = new File(new URI(RDPHelper.class.getProtectionDomain().getCodeSource().getLocation().toURI() + "\\" + userName + "TemporaryFile.rdp"));
+				theFile = new File(new URI(RDPHelper.class.getProtectionDomain().getCodeSource().getLocation().toURI() + "\\" + userName + "_temporaryFile.rdp"));
 			}
 			createRpdFile(password, userName, hostname, theFile.getAbsolutePath(), domain);
 			Runtime.getRuntime().exec("mstsc.exe " + theFile.getAbsolutePath());
