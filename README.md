@@ -1,3 +1,5 @@
+# mvn clean compile assembly:single
+#
 # Rdp Helper
 * Encrypt password to the RDP file format (the password will be 1329 bytes length) ant print to the output
 * Creates RDP file with encrypted password and basic rdp info (username, domainname, hostname)
