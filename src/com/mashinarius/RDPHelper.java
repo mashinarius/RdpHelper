@@ -105,6 +105,7 @@ public class RDPHelper {
 				bufferedWriter.newLine();
 				bufferedWriter.write("password 51:b:" + generatePassword(password));
 				bufferedWriter.newLine();
+				bufferedWriter.close();
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -142,7 +143,8 @@ public class RDPHelper {
 			if (tempDir.exists() && tempDir.isDirectory()) {
 				theFile = new File(tempDir + "\\" + userName + "_temporaryFile.rdp");
 			} else {
-				theFile = new File(new URI(RDPHelper.class.getProtectionDomain().getCodeSource().getLocation().toURI() + "\\" + userName + "_temporaryFile.rdp"));
+				theFile = new File(
+						new URI(RDPHelper.class.getProtectionDomain().getCodeSource().getLocation().toURI() + "\\" + userName + "_temporaryFile.rdp"));
 			}
 			createRpdFile(password, userName, hostname, theFile.getAbsolutePath(), domain);
 			Runtime.getRuntime().exec("mstsc.exe " + theFile.getAbsolutePath());
@@ -196,6 +198,7 @@ public class RDPHelper {
 		for (final byte b : pwdBytes) {
 			formatter.format("%02X", b);
 		}
+		formatter.close();
 		return epwsb.toString();
 	}
 
@@ -265,7 +268,6 @@ public class RDPHelper {
 			bufferedWriter.close();
 			fstream.close();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		return theFile;
