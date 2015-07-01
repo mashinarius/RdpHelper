@@ -73,11 +73,45 @@ public class RDPHelper {
 			openRDPSession(true, args[1], args[2], args[3], args[4]);
 		} else if (args[0].equals("/update") && args.length == 3) {
 			updateRDPFile(args[1], args[2]);
+		} else if (args[0].equals("/winlogon") && args.length == 3) {// no domain name was specified
+			winlogon(args[1], args[2], "");
+		} else if (args[0].equals("/winlogon") && args.length == 4) {
+			winlogon(args[1], args[2], args[3]);
+		} else if (args[0].equals("/winlogoff") && args.length == 1) {
+			winlogoff();
 		} else {
 			usage();
 		}
 	}
 
+	/**
+	 * Disable windows automatically logon and remove default user info
+	 */
+	private static void winlogoff() {
+		Advapi32Util.registrySetIntValue(WinReg.HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon", "AutoAdminLogon", 0);
+		Advapi32Util.registrySetStringValue(WinReg.HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon", "DefaultDomainName", "");
+		Advapi32Util.registrySetStringValue(WinReg.HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon", "DefaultUserName", "");
+		Advapi32Util.registrySetStringValue(WinReg.HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon", "DefaultPassword", "");
+	}
+
+	/**
+	 * Setup Windows OS automatically logon
+	 * 
+	 * @param userName
+	 * @param userPassword
+	 * @param domain
+	 */
+	private static void winlogon(String userName, String userPassword, String domain) {
+		Advapi32Util.registrySetIntValue(WinReg.HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon", "AutoAdminLogon", 1);
+		Advapi32Util.registrySetStringValue(WinReg.HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon", "DefaultDomainName", domain);
+		Advapi32Util.registrySetStringValue(WinReg.HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon", "DefaultUserName", userName);
+		Advapi32Util.registrySetStringValue(WinReg.HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon", "DefaultPassword", userPassword);
+
+	}
+
+	/**
+	 * Echo usage info
+	 */
 	private static void usage() {
 		System.out.println("Usage:");
 		System.out.println("To generate rdp password: \n\tjava -jar rdpgenerator.jar /password $PASSWORD");
@@ -113,6 +147,20 @@ public class RDPHelper {
 		}
 	}
 
+	
+	private static void removeWarning(String hostname)
+	{
+		// Creates registry value to avoid warning window.
+		//TODO change 111 (or 76 as Win7 defaults) to the correct value - it should depends on Windows OS version		
+
+		if (!Advapi32Util.registryKeyExists(WinReg.HKEY_CURRENT_USER, "Software\\Microsoft\\Terminal Server Client\\LocalDevices")) {
+			Advapi32Util.registryCreateKey(WinReg.HKEY_CURRENT_USER, "Software\\Microsoft\\Terminal Server Client\\LocalDevices");
+		}
+		if (!Advapi32Util.registryValueExists(WinReg.HKEY_CURRENT_USER, "Software\\Microsoft\\Terminal Server Client\\LocalDevices", hostname)) {
+			Advapi32Util.registrySetIntValue(WinReg.HKEY_CURRENT_USER, "Software\\Microsoft\\Terminal Server Client\\LocalDevices", hostname, 111);
+		}
+	}
+	
 	/**
 	 * Creates temporary file and start command <i>mstsc.exe filename</i> Adds
 	 * username to the temporary filename - so RDP window could be detected with
@@ -125,15 +173,8 @@ public class RDPHelper {
 	 */
 	private static void openRDPSession(boolean skipWarning, String password, String userName, String hostname, String domain) {
 
-		// Creates registry value to avoid warning window.
-		//TODO change 111 (or 76 as Win7 defaults) to the correct value - it should depends on Windows OS version		
 		if (skipWarning) {
-			if (!Advapi32Util.registryKeyExists(WinReg.HKEY_CURRENT_USER, "Software\\Microsoft\\Terminal Server Client\\LocalDevices")) {
-				Advapi32Util.registryCreateKey(WinReg.HKEY_CURRENT_USER, "Software\\Microsoft\\Terminal Server Client\\LocalDevices");
-			}
-			if (!Advapi32Util.registryValueExists(WinReg.HKEY_CURRENT_USER, "Software\\Microsoft\\Terminal Server Client\\LocalDevices", hostname)) {
-				Advapi32Util.registrySetIntValue(WinReg.HKEY_CURRENT_USER, "Software\\Microsoft\\Terminal Server Client\\LocalDevices", hostname, 111);
-			}
+			removeWarning(hostname);
 		}
 
 		try {
