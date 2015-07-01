@@ -1,10 +1,12 @@
 package com.mashinarius;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -79,11 +81,14 @@ public class RDPHelper {
 			winlogon(args[1], args[2], args[3]);
 		} else if (args[0].equals("/winlogoff") && args.length == 1) {
 			winlogoff();
+		} else if (args[0].equals("/logoff") && args.length == 2) {
+			CloseRDP.closeRDP(args[1]);
 		} else {
 			usage();
 		}
 	}
-
+	
+	
 	/**
 	 * Disable windows automatically logon and remove default user info
 	 */
