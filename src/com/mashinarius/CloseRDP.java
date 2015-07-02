@@ -61,7 +61,12 @@ public class CloseRDP implements RDPConstants {
 				}
 			}
 		} catch (IOException e) {
-			e.printStackTrace();
+			if (e.getLocalizedMessage().contains("CreateProcess error=2") && e.getLocalizedMessage().contains("qwinsta")) {
+				System.err.println("qwinsta.exe could not be found.");
+				System.err.println("Check that Windows and Java platform matches each other - e.g. both x86 or both x64.");
+			} else {
+				e.printStackTrace();
+			}
 
 		} catch (InterruptedException e) {
 			e.printStackTrace();
