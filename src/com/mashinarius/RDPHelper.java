@@ -1,12 +1,10 @@
 package com.mashinarius;
 
-import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -20,34 +18,9 @@ import com.sun.jna.platform.win32.WinReg;
 
 /**
  * @author mashinarius
- * 
- *         Usage:<br>
- *         <p>
- *         /password {password} Generates encrypted RDP password and print the
- *         result to the output.<br>
- *         <i>Password must be generated at the RDP client side.<br>
- *         e.g. if you want to connect from A to B, password must be generated
- *         at the A side only.</i>
- *         <p>
- *         /file {password} {userName} {hostname} {fileName} {domain} <br>
- *         Creates {filename}.rpd file with the basic information inside
- *         (hostname, username, password, domain, screen windowed, size
- *         1280*1024)<br>
- *         Adds password to the existing RDP file
- *         <p>
- *         /open {password} {userName} {hostname} {domain} <br>
- *         Creates temporary .rdp file and open RDP connection (the username
- *         will be the prefix of the filename)
- *         <p>
- *         /force {password} {userName} {hostname} {domain} <br>
- *         Same as /open but skip warning window (untrusted publisher)
- *         <p>
- *         /update {password} {fileName} <br>
- *         Updates the file {filename}, adds new line with the encrypted
- *         password (e.g. password 51:b:{passwordhash})<br>
- * 
  */
-public class RDPHelper {
+
+public class RDPHelper implements RDPConstants {
 
 	/**
 	 * @param args
@@ -75,24 +48,24 @@ public class RDPHelper {
 			openRDPSession(true, args[1], args[2], args[3], args[4]);
 		} else if (args[0].equals("/update") && args.length == 3) {
 			updateRDPFile(args[1], args[2]);
-		} else if (args[0].equals("/winlogon") && args.length == 3) {// no domain name was specified
-			winlogon(args[1], args[2], "");
+		} else if (args[0].equals("/winlogon") && args.length == 3) { // no domain name was specified
+			enableAutoLogon(args[1], args[2], "");
 		} else if (args[0].equals("/winlogon") && args.length == 4) {
-			winlogon(args[1], args[2], args[3]);
+			enableAutoLogon(args[1], args[2], args[3]);
 		} else if (args[0].equals("/winlogoff") && args.length == 1) {
-			winlogoff();
+			disableAutoLogon();
 		} else if (args[0].equals("/logoff") && args.length == 2) {
-			CloseRDP.closeRDP(args[1]);
+			CloseRDP.logoffUser(args[1]);
+			CloseRDP.killMstscProcess(args[1]);
 		} else {
 			usage();
 		}
 	}
-	
-	
+
 	/**
 	 * Disable windows automatically logon and remove default user info
 	 */
-	private static void winlogoff() {
+	private static void disableAutoLogon() {
 		Advapi32Util.registrySetIntValue(WinReg.HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon", "AutoAdminLogon", 0);
 		Advapi32Util.registrySetStringValue(WinReg.HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon", "DefaultDomainName", "");
 		Advapi32Util.registrySetStringValue(WinReg.HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon", "DefaultUserName", "");
@@ -106,7 +79,7 @@ public class RDPHelper {
 	 * @param userPassword
 	 * @param domain
 	 */
-	private static void winlogon(String userName, String userPassword, String domain) {
+	private static void enableAutoLogon(String userName, String userPassword, String domain) {
 		Advapi32Util.registrySetIntValue(WinReg.HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon", "AutoAdminLogon", 1);
 		Advapi32Util.registrySetStringValue(WinReg.HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon", "DefaultDomainName", domain);
 		Advapi32Util.registrySetStringValue(WinReg.HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon", "DefaultUserName", userName);
@@ -119,16 +92,17 @@ public class RDPHelper {
 	 */
 	private static void usage() {
 		System.out.println("Usage:");
-		System.out.println("To generate rdp password: \n\tjava -jar rdpgenerator.jar /password $PASSWORD");
-		System.out.println("To create .rdp file: \n\tjava -jar rdpgenerator.jar /file $PASSWORD $USERNAME $HOST $FILENAME $DOMAIN");
-		System.out.println("To start rdp session: \n\tjava -jar rdpgenerator.jar /open $PASSWORD $USERNAME $HOST $DOMAIN");
-		System.out.println("To add password line to the existing file: \n\tjava -jar rdpgenerator.jar /update $PASSWORD $FILENAME");
+		System.out.println("To logoff user: \n\t /logoff $USERNAME");
+		System.out.println("To start rdp session: \n\t /open $PASSWORD $USERNAME $HOST $DOMAIN");
+		System.out.println("To start rdp session and skip warning windows: \n\t /force $PASSWORD $USERNAME $HOST $DOMAIN");
+		System.out.println("To add password line to the existing file: \n\t /update $PASSWORD $FILENAME");
+		System.out.println("To generate rdp password: \n\t /password $PASSWORD");
+		System.out.println("To create .rdp file: \n\t /file $PASSWORD $USERNAME $HOST $FILENAME $DOMAIN");
 		System.out.println("Leave $DOMAIN empty if absent");
-
 	}
 
 	/**
-	 * Open File and add password line to the end. (<i>51:b:#passwordhash#</i>)
+	 * Append File with the password line. (<i>51:b:#passwordhash#</i>)
 	 * 
 	 * @param password
 	 * @param filename
@@ -152,9 +126,11 @@ public class RDPHelper {
 		}
 	}
 
-	
-	private static void removeWarning(String hostname)
-	{
+	/**
+	 * Remove warning windows during RDP session start (adds hostname to the trusted list)
+	 * @param hostname
+	 */
+	private static void removeWarning(String hostname) {
 		// Creates registry value to avoid warning window.
 		//TODO change 111 (or 76 as Win7 defaults) to the correct value - it should depends on Windows OS version		
 
@@ -165,7 +141,7 @@ public class RDPHelper {
 			Advapi32Util.registrySetIntValue(WinReg.HKEY_CURRENT_USER, "Software\\Microsoft\\Terminal Server Client\\LocalDevices", hostname, 111);
 		}
 	}
-	
+
 	/**
 	 * Creates temporary file and start command <i>mstsc.exe filename</i> Adds
 	 * username to the temporary filename - so RDP window could be detected with
@@ -187,10 +163,9 @@ public class RDPHelper {
 			File tempDir = new File(javaTempDir);
 			File theFile = null;
 			if (tempDir.exists() && tempDir.isDirectory()) {
-				theFile = new File(tempDir + "\\" + userName + "_temporaryFile.rdp");
+				theFile = new File(tempDir + "\\" + userName + RDP_FILE_SUFFIX + ".rdp");
 			} else {
-				theFile = new File(
-						new URI(RDPHelper.class.getProtectionDomain().getCodeSource().getLocation().toURI() + "\\" + userName + "_temporaryFile.rdp"));
+				theFile = new File(new URI(RDPHelper.class.getProtectionDomain().getCodeSource().getLocation().toURI() + "\\" + userName + RDP_FILE_SUFFIX + ".rdp"));
 			}
 			createRpdFile(password, userName, hostname, theFile.getAbsolutePath(), domain);
 			Runtime.getRuntime().exec("mstsc.exe " + theFile.getAbsolutePath());

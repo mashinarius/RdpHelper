@@ -14,6 +14,8 @@ This file could be used to automatically connect to the Windows OS. The file sho
 *	<code>java -jar rdp-helper-*.jar /open $PASSWORD $USERNAME $HOST $DOMAIN</code>
 * To start rdp session and skip warning windows (untrusted publisher)
 *	<code>java -jar rdp-helper-* /force $PASSWORD $USERNAME $HOST $DOMAIN</code>
+* To close rdp session 
+*	<code>java -jar rdp-helper-*.jar /logoff $USERNAME</code>
 * To add password line to the existing file: 
 *	<code>java -jar rdp-helper-* /update $PASSWORD $FILENAME</code>
 * Leave $DOMAIN empty if absent
