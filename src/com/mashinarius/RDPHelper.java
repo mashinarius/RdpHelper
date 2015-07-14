@@ -32,31 +32,33 @@ public class RDPHelper implements RDPConstants {
 			System.exit(0);
 		}
 
-		if (args[0].equals("/password") && args.length == 2) {
+		if (args[0].toLowerCase().equals(INPUT_PASSWORD) && args.length == 2) {
 			System.out.println(generatePassword(args[1]));
-		} else if (args[0].equals("/file") && args.length == 5) {
+		} else if (args[0].toLowerCase().equals(INPUT_FILE) && args.length == 5) {
 			createRpdFile(args[1], args[2], args[3], args[4], ""); // no domain name was specified
-		} else if (args[0].equals("/file") && args.length == 6) {
+		} else if (args[0].toLowerCase().equals(INPUT_FILE) && args.length == 6) {
 			createRpdFile(args[1], args[2], args[3], args[4], args[5]);
-		} else if (args[0].equals("/open") && args.length == 4) {
+		} else if (args[0].toLowerCase().equals(INPUT_OPEN) && args.length == 4) {
 			openRDPSession(false, args[1], args[2], args[3], ""); // no domain name was specified
-		} else if (args[0].equals("/open") && args.length == 5) {
+		} else if (args[0].toLowerCase().equals(INPUT_OPEN) && args.length == 5) {
 			openRDPSession(false, args[1], args[2], args[3], args[4]);
-		} else if (args[0].equals("/force") && args.length == 4) {
+		} else if (args[0].toLowerCase().equals(INPUT_FORCE) && args.length == 4) {
 			openRDPSession(true, args[1], args[2], args[3], ""); // no domain name was specified
-		} else if (args[0].equals("/force") && args.length == 5) {
+		} else if (args[0].toLowerCase().equals(INPUT_FORCE) && args.length == 5) {
 			openRDPSession(true, args[1], args[2], args[3], args[4]);
-		} else if (args[0].equals("/update") && args.length == 3) {
+		} else if (args[0].toLowerCase().equals(INPUT_UPDATE) && args.length == 3) {
 			updateRDPFile(args[1], args[2]);
-		} else if (args[0].equals("/winlogon") && args.length == 3) { // no domain name was specified
+		} else if (args[0].toLowerCase().equals(INPUT_WINLOGON) && args.length == 3) { // no domain name was specified
 			enableAutoLogon(args[1], args[2], "");
-		} else if (args[0].equals("/winlogon") && args.length == 4) {
+		} else if (args[0].toLowerCase().equals(INPUT_WINLOGON) && args.length == 4) {
 			enableAutoLogon(args[1], args[2], args[3]);
-		} else if (args[0].equals("/winlogoff") && args.length == 1) {
+		} else if (args[0].toLowerCase().equals(INPUT_WINLOGOFF) && args.length == 1) {
 			disableAutoLogon();
-		} else if (args[0].equals("/logoff") && args.length == 2) {
+		} else if (args[0].toLowerCase().equals(INPUT_LOGOFF) && args.length == 2) {
 			CloseRDP.logoffUser(args[1]);
 			CloseRDP.killMstscProcess(args[1]);
+		} else if (args[0].toLowerCase().equals(INPUT_IS_CONNECTED) && args.length == 2) {
+			CloseRDP.isActiveOrDisconnected(args[1]);
 		} else {
 			usage();
 		}
@@ -98,6 +100,7 @@ public class RDPHelper implements RDPConstants {
 		System.out.println("To add password line to the existing file: \n\t /update $PASSWORD $FILENAME");
 		System.out.println("To generate rdp password: \n\t /password $PASSWORD");
 		System.out.println("To create .rdp file: \n\t /file $PASSWORD $USERNAME $HOST $FILENAME $DOMAIN");
+		System.out.println("To check if user is connected (returns proc ID > 0 if true) \n\t /isconnected $USERNAME");
 		System.out.println("Leave $DOMAIN empty if absent");
 	}
 
@@ -127,7 +130,9 @@ public class RDPHelper implements RDPConstants {
 	}
 
 	/**
-	 * Remove warning windows during RDP session start (adds hostname to the trusted list)
+	 * Remove warning windows during RDP session start (adds hostname to the
+	 * trusted list)
+	 * 
 	 * @param hostname
 	 */
 	private static void removeWarning(String hostname) {

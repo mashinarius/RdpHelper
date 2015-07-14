@@ -21,24 +21,21 @@ public class CloseRDP implements RDPConstants {
 	}
 
 	/**
-	 * Find RDP ID assotiated with the username. Logoff username.
-	 * 
+	 * Check if userName is connected and connection state is Active or Disconnected.
 	 * @param userName
-	 * @return false if fails.
+	 * @return -1 if fails, procId otherwise
 	 */
-	public static boolean logoffUser(String userName) {
+	public static int isActiveOrDisconnected(String userName) {
+		boolean isActiveOrDisconnected = false;
+		String procId = new String();
+		Process proc;
 		try {
-			Process proc = Runtime.getRuntime().exec("qwinsta.exe /server:localhost " + userName);
+			proc = Runtime.getRuntime().exec("qwinsta.exe /server:localhost " + userName);
 			if (proc.waitFor() != 0) {
-				return false;
+				return -1;
 			}
-
 			BufferedReader stdInput = new BufferedReader(new InputStreamReader(proc.getInputStream()));
-
 			String s = null;
-			boolean isActiveOrDisconnected = false;
-
-			String procId = new String();
 			while ((s = stdInput.readLine()) != null) {
 				if (s.contains(userName) && s.contains(STATE_DISCONNECTED)) {
 					isActiveOrDisconnected = true;
@@ -49,15 +46,36 @@ public class CloseRDP implements RDPConstants {
 				}
 			}
 			stdInput.close();
+		} catch (IOException e) {
+			isActiveOrDisconnected = false;
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			isActiveOrDisconnected = false;
+		}
+		if (isActiveOrDisconnected && isNumeric(procId)) {
+			return Integer.parseInt(procId);
+		} else {
+			return -1;
+		}
+	}
 
-			if (isActiveOrDisconnected) {
-				if (isNumeric(procId)) {
-					System.out.println("Trying to logoff user " + userName + " using RDP ID = " + procId);
-					Process logoff = Runtime.getRuntime().exec("logoff " + procId + " /V");
-					if (logoff.waitFor() == 0) {
-						System.out.println("Complete.");
-						return true;
-					}
+	/**
+	 * Find RDP ID assotiated with the username. Logoff username.
+	 * 
+	 * @param userName
+	 * @return false if fails.
+	 */
+	public static boolean logoffUser(String userName) {
+		try {
+			int procId = isActiveOrDisconnected(userName);
+			if (procId > 0) {
+
+				System.out.println("Trying to logoff user " + userName + " using RDP ID = " + procId);
+				Process logoff = Runtime.getRuntime().exec("logoff " + procId + " /V");
+				if (logoff.waitFor() == 0) {
+					System.out.println("Complete.");
+					return true;
 				}
 			}
 		} catch (IOException e) {

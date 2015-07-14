@@ -16,9 +16,14 @@ This file could be used to automatically connect to the Windows OS. The file sho
 *	<code>java -jar rdp-helper-* /force $PASSWORD $USERNAME $HOST $DOMAIN</code>
 * To close rdp session 
 *	<code>java -jar rdp-helper-*.jar /logoff $USERNAME</code>
+* To check if userName connected (if true will return process ID > 0) 
+*	<code>java -jar rdp-helper-*.jar /isconnected $USERNAME</code>
 * To add password line to the existing file: 
 *	<code>java -jar rdp-helper-* /update $PASSWORD $FILENAME</code>
-* Leave $DOMAIN empty if absent
+* To configure Windows OS autologon: 
+*	<code>java -jar rdp-helper-*.jar /winlogon $USERNAME $PASSWORD $DOMAIN</code>
+
+$DOMAIN is optional
 
 <p>
 <code>mvn clean compile assembly:single</code>
